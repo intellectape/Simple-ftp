@@ -1,0 +1,77 @@
+import socket
+import pickle
+import random
+
+class Packet:
+    def __init__(self, sequenceNumber,id,data,eof):
+        self.sequenceNumber = sequenceNumber
+        #self.checksum=checksum
+        self.id=id
+        self.data=data
+        self.eof=eof
+
+class Acknowledgement:
+    def __init__(self, sequenceNumber, zeros, ackField):
+        self.sequenceNumber = sequenceNumber
+        self.zeros = zeros
+        self.ackField = ackField
+
+
+
+class server:
+    addc=0
+
+    down=True
+    recvack=0
+    filename=""
+    sock= socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    p=0
+
+    
+
+
+
+
+print "waiting for packets to arrive"
+sfs=server()    
+#sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sfs.filename="python.txt"
+sfs.sock.bind(("127.0.0.1",7720))
+a=sfs.sock.recv(2048)
+c=pickle.loads(a)
+print c.id
+filewrt=open(sfs.filename,"wb")
+sfs.p=0
+while(sfs.down):
+    a=sfs.sock.recv(2048)
+    x,sfs.addc=sfs.sock.recvfrom(2048)
+    #b=''.join(a)
+    c=pickle.loads(a)
+    #print c.id
+    seqno=int(c.sequenceNumber,2)
+    print seqno
+    
+    id=c.id
+    data=c.data
+    r=random.random()
+
+    if r<=sfs.p:
+        print "Packet Loss, Sequence number="+str(seqno)
+        continue
+
+    if sfs.recvack==seqno:
+        sfs.recvack+=1
+        if id=="0101010101010101" :
+            filewrt.write(data)
+            a=Acknowledgement(format(sfs.recvack,"032b"),"0000000000000000","1010101010101010")
+            b=pickle.dumps(a)
+            sfs.sock.sendto(b,sfs.addc)
+
+        else:
+            sfs.down=False
+                    
+
+filewrt.close()
+print "File has been downloaded"
+
+    
